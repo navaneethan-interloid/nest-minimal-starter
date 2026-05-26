@@ -6,7 +6,7 @@ import { CoreModule } from '@interloid/core';
 import { LoggerModule } from '@interloid/logger';
 import { ValidationModule } from '@interloid/validation';
 import { ObservabilityModule } from '@interloid/observability';
-import { AUTH_THROTTLER_PRESET, SecurityModule } from '@interloid/security';
+import { SecurityModule } from '@interloid/security';
 import { appConfigSchema } from './config/env.schema';
 
 const env = appConfigSchema.parse(process.env);
@@ -40,14 +40,14 @@ const isProd = env.NODE_ENV === 'production';
      * Handles contextual console output and filesystem streaming.
      */
     LoggerModule.forRoot({
-      level: env.LOG_LEVEL, // Suppresses info/debug logs, ensuring only high-severity system failures hit the output stream
+      level: env.LOG_LEVEL, // Minimum log level — messages below this are dropped
       file: {
         retentionDays: env.LOG_RETENTION_DAYS, // Deletes historical log files automatically after the specified number of days to prevent server disk overflow
         cleanupCron: '0 0 * * *', // Nightly cron schedule (executed at midnight) that sweeps and purges expired files
         alsoStdout: env.LOG_ALSO_STDOUT, // Simultaneously mirrors file-bound logs onto the standard terminal console output
         directory: env.LOG_DIRECTORY, // Configures the specific root/target directory path where log files write to disk
       },
-      format: env.LOG_FORMAT, // Enforces rigid single-line JSON, enabling smooth indexing by aggregators like Datadog or Loki
+      format: env.LOG_FORMAT, // 'json' or 'pretty' — set via LOG_FORMAT env var
       redact: ['password', 'secret'], // Scans logs to automatically strip and mask sensitive data payloads from leaking
       serviceName: 'nest-starter-minimal', // Stitches this name tag to every log, enabling easy filtering in cloud dashboards
     }),
@@ -68,27 +68,21 @@ const isProd = env.NODE_ENV === 'production';
       health: {
         enabled: true, // Turns the telemetry health indicator module fully on
         endpoint: '/health', // Defines the active HTTP path matching where load balancers verify infrastructure state
-        diskThresholdPercent: env.HEALTH_DISK_THRESHOLD, // Marks system degraded/unhealthy if server disk capacity surpasses an 80% ceiling
-        memoryHeapBytes: env.HEALTH_MEMORY_HEAP_MB, // Fails health check if JavaScript V8 engine working memory spikes past 512MB
+        diskThresholdPercent: env.HEALTH_DISK_THRESHOLD, // Disk usage fraction above which /health returns degraded (0.0–1.0)
+        memoryHeapBytes: env.HEALTH_MEMORY_HEAP_BYTES, // Heap size in bytes above which /health returns degraded
         redis: {
           url: env.REDIS_URL,
           name: 'redis',
         }, // Automated background database connection check ping
-        externalHttp: [
-          {
-            name: 'google',
-            url: env.EXTERNAL_URL,
-          },
-        ], // Verifies external gateway access remains online
       },
       metrics: {
         collectDefaultMetrics: true, // Emits standard node engine performance tracks (CPU, loop delays, GC frequency)
       },
       sentry: {
-        dsn: process.env.SENTRY_DSN, // Specifies the ingestion address endpoint where error capture frames route to
+        dsn: env.SENTRY_DSN, // Specifies the ingestion address endpoint where error capture frames route to
         tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE, // Captures 100% of pipeline transactions for exhaustive route performance mapping
-        enabled: !!process.env.SENTRY_DSN, // Safe evaluated check ensuring Sentry activates only if a target configuration is supplied
-        environment: process.env.NODE_ENV || 'development', // Segregates logging frames by explicit environment tags
+        enabled: !!env.SENTRY_DSN, // Safe evaluated check ensuring Sentry activates only if a target configuration is supplied
+        environment: env.NODE_ENV || 'development', // Segregates logging frames by explicit environment tags
         release: `nest-starter-minimal@${process.env.npm_package_version}`, // Matches error captures to explicit build hashes or versions
       },
     }),
@@ -98,15 +92,27 @@ const isProd = env.NODE_ENV === 'production';
      * Enforces strict web client parameters, CSRF safety, and API request throttling.
      */
     SecurityModule.forRoot({
-      csrf: {
-        ignoreMethods: ['GET'], // Read-only REST queries bypass verification tokens since they change no state
-        headerName: 'X-CSRF-Token', // Dictates the request header label name clients need to attach tokens on
-        sameSite: env.CSRF_SAME_SITE, // Mitigates cross-site attack vulnerabilities on browser-to-server cookies
-        cookieDomain: env.CSRF_COOKIE_DOMAIN, // Extends validation scope seamlessly to share access tokens along subdomains
-        cookieName: 'csrf-token', // Defines the key label identifier used to track the security cookie payload
-        secure: true, // Enforces security cookies to exclusively travel on active, encrypted HTTPS connections
-      },
-      throttler: AUTH_THROTTLER_PRESET, // Enforces high-protection request caps to shield API domains from brute-force scripts
+      ...(env.CSRF_ENABLED && {
+        csrf: {
+          ignoreMethods: ['GET'], // Read-only REST queries bypass verification tokens since they change no state
+          headerName: 'X-CSRF-Token', // Dictates the request header label name clients need to attach tokens on
+          sameSite: env.CSRF_SAME_SITE, // Mitigates cross-site attack vulnerabilities on browser-to-server cookies
+          cookieName: 'csrf-token', // Defines the key label identifier used to track the security cookie payload
+          secure: isProd, // Enforces security cookies to exclusively travel on active, encrypted HTTPS connections
+          ...(env.CSRF_COOKIE_DOMAIN && {
+            cookieDomain: env.CSRF_COOKIE_DOMAIN,
+          }), // Extends validation scope seamlessly to share access tokens along subdomains
+        },
+      }),
+      throttler: {
+        throttlers: [
+          {
+            name: 'global',
+            ttl: env.THROTTLER_TTL_MS,
+            limit: env.THROTTLER_LIMIT,
+          },
+        ],
+      }, // Enforces high-protection request caps to shield API domains from brute-force scripts
       //GLOBAL_THROTTLER_PRESET, // Applies more lenient throttling rules suitable for general API rate-limiting use cases
     }),
   ],

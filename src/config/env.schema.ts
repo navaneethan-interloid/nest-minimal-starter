@@ -156,7 +156,7 @@ export const appConfigSchema = z.object({
   /**
    * V8 virtual engine heap memory upper allocation cap boundary defined in Bytes.
    */
-  HEALTH_MEMORY_HEAP_MB: z.coerce.number().default(536870912),
+  HEALTH_MEMORY_HEAP_BYTES: z.coerce.number().default(536870912),
 
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   SENTRY_DSN: z.string().optional(),

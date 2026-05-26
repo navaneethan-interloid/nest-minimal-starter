@@ -45,7 +45,9 @@ async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
   app.use(isProd ? strictHelmet() : swaggerSafeHelmet());
 
-  app.enableCors(buildCorsOptions({ origins: ['*'], allowNoOrigin: true }));
+  app.enableCors(
+    buildCorsOptions({ origins: env.CORS_ORIGINS, allowNoOrigin: !isProd }),
+  );
   app.use((cookieParser as unknown as () => RequestHandler)());
 
   const config = new DocumentBuilder()
