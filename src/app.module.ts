@@ -23,7 +23,7 @@ const isProd = env.NODE_ENV === 'production';
       schema: appConfigSchema, // Enforces strict type validation, coercion, and defaults via your Zod schema
       expandVariables: true, // Enables nested variable interpolation inside your environment configuration files
       // FIX: Evaluates the system variable directly to bypass the unparsed Zod schema type-overlap issue
-      nodeEnv: isProd ? 'production' : 'development',
+      nodeEnv: env.NODE_ENV,
       loadLocalInTest: true, // Forces local override variables to actively load even under test execution modes
     }),
 
@@ -69,7 +69,7 @@ const isProd = env.NODE_ENV === 'production';
         enabled: true, // Turns the telemetry health indicator module fully on
         endpoint: '/health', // Defines the active HTTP path matching where load balancers verify infrastructure state
         diskThresholdPercent: env.HEALTH_DISK_THRESHOLD, // Disk usage fraction above which /health returns degraded (0.0–1.0)
-        memoryHeapBytes: env.HEALTH_MEMORY_HEAP_BYTES, // Heap size in bytes above which /health returns degraded
+        memoryHeapBytes: env.HEALTH_MEMORY_HEAP_MB * 1024 * 1024, // Heap size in bytes above which /health returns degraded
         redis: {
           url: env.REDIS_URL,
           name: 'redis',
@@ -80,10 +80,10 @@ const isProd = env.NODE_ENV === 'production';
       },
       sentry: {
         dsn: env.SENTRY_DSN, // Specifies the ingestion address endpoint where error capture frames route to
-        tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE, // Captures 100% of pipeline transactions for exhaustive route performance mapping
+        tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE, // Fraction of transactions traced — 0.1 = 10%, 1.0 = 100%
         enabled: !!env.SENTRY_DSN, // Safe evaluated check ensuring Sentry activates only if a target configuration is supplied
-        environment: env.NODE_ENV || 'development', // Segregates logging frames by explicit environment tags
-        release: `nest-starter-minimal@${process.env.npm_package_version}`, // Matches error captures to explicit build hashes or versions
+        environment: env.NODE_ENV, // Segregates logging frames by explicit environment tags
+        release: `nest-starter-minimal@${process.env['npm_package_version'] ?? '0.0.0'}`,
       },
     }),
 
@@ -113,7 +113,6 @@ const isProd = env.NODE_ENV === 'production';
           },
         ],
       }, // Enforces high-protection request caps to shield API domains from brute-force scripts
-      //GLOBAL_THROTTLER_PRESET, // Applies more lenient throttling rules suitable for general API rate-limiting use cases
     }),
   ],
   controllers: [AppController],

@@ -52,7 +52,7 @@ export const appConfigSchema = z.object({
   /**
    * System output structure style for stream targets.
    */
-  LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
+  LOG_FORMAT: z.enum(['json', 'pretty']).default('pretty'),
 
   /**
    * Toggles whether logs should be synchronously piped to standard stdout streams.
@@ -146,7 +146,7 @@ export const appConfigSchema = z.object({
   /**
    * V8 virtual engine heap memory upper allocation cap boundary defined in Bytes.
    */
-  HEALTH_MEMORY_HEAP_BYTES: z.coerce.number().default(536870912),
+  HEALTH_MEMORY_HEAP_MB: z.coerce.number().int().min(64).default(512),
 
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
