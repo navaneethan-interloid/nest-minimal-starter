@@ -1,14 +1,14 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { SkipCsrf, StrictThrottle } from '@interloid/security';
-import { CurrentUser, Public } from '@interloid/core';
+import { Public } from '@interloid/core';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get('/ping')
-  @StrictThrottle('ping', 100, 60000)
+  @StrictThrottle('global', 100, 60000)
   getHello() {
     return this.appService.getHello();
   }
@@ -16,8 +16,8 @@ export class AppController {
   // Mark a route as publicly accessible (no auth required):
   @Public()
   @Get('profile')
-  getProfile(@CurrentUser() user: string = 'guest') {
-    return { data: { user } };
+  getProfile() {
+    return { data: { user: 'guest' } };
   }
 
   // Skip CSRF protection on this endpoint (cookie-session apps only):
