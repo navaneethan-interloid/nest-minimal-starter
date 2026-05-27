@@ -6,6 +6,6 @@ import { AppConfig } from './config/env.schema';
 export class AppService {
   constructor(private readonly config: TypedConfigService<AppConfig>) {}
   getHello() {
-    return { data: { pong: true } };
+    return { data: { pong: true, environment: this.config.get('NODE_ENV') } };
   }
 }

@@ -1,33 +1,36 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { SkipCsrf, StrictThrottle } from '@interloid/security';
-import { /*CurrentUser,*/ Public } from '@interloid/core';
-import { cleanupOldLogFiles } from '@interloid/logger';
+import { CurrentUser, Public } from '@interloid/core';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get('/ping')
-  // Skip CSRF validation for this endpoint
-  // Useful for public or non-browser-based requests
-  @SkipCsrf()
-
-  // Mark this endpoint as publicly accessible
-  // Skips authentication/authorization checks
-  @Public()
-
-  // Disable throttling for this route
-  // Uncomment if rate limiting should be bypassed
-  //@SkipThrottle()
-
-  // Apply strict rate limiting:
-  // Max 100 requests per 60 seconds for the "ping" throttle group
-  @StrictThrottle('ping', 60000, 100)
-  async getHello(/*@CurrentUser() user: User // Inject authenticated user details from the request context*/) {
-    // Remove log files older than 3 days from the specified directory
-    await cleanupOldLogFiles('./', 3);
-
+  @StrictThrottle('ping', 100, 60000)
+  getHello() {
     return this.appService.getHello();
+  }
+
+  // Mark a route as publicly accessible (no auth required):
+  @Public()
+  @Get('profile')
+  getProfile(@CurrentUser() user: string = 'guest') {
+    return { data: { user } };
+  }
+
+  // Skip CSRF protection on this endpoint (cookie-session apps only):
+  @SkipCsrf()
+  @Post('webhook')
+  handleWebhook() {
+    return { data: { received: true } };
+  }
+
+  // Apply stricter rate limits to one route:
+  @StrictThrottle() // override the global bucket to 5/min
+  @Post('login')
+  login() {
+    return { data: { logged_in: true } };
   }
 }
