@@ -13,7 +13,6 @@ use `nest-starter-api` (coming in Phase 4 of the platform roadmap).
 
 | Endpoint        | What it does                                               |
 | --------------- | ---------------------------------------------------------- |
-| `GET /`         | Hello World — temporary smoke test (replace with `/ping`)  |
 | `GET /health`   | Liveness + readiness checks (disk, memory, optional Redis) |
 | `GET /metrics`  | Prometheus metrics                                         |
 | `GET /api/docs` | Swagger UI (development only)                              |

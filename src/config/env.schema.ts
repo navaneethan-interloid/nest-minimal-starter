@@ -34,11 +34,6 @@ export const appConfigSchema = z.object({
     .default('development'),
 
   /**
-   * Upstream URL context used to map absolute URLs across callbacks and templates.
-   */
-  EXTERNAL_URL: z.string().default('http://localhost:6000'),
-
-  /**
    * The absolute number of upstream proxy hops (e.g., Nginx, Cloudflare)
    * to trust for client IP determination.
    */
@@ -58,11 +53,6 @@ export const appConfigSchema = z.object({
    * System output structure style for stream targets.
    */
   LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
-
-  /**
-   * Toggles terminal colorizations and spacing layouts when standard streaming is on.
-   */
-  LOG_PRETTY: coerceBoolean.default(true),
 
   /**
    * Toggles whether logs should be synchronously piped to standard stdout streams.
