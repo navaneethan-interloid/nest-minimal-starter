@@ -23,7 +23,7 @@
     "@interloid/config": "^0.0.1",
     "@interloid/core": "^0.3.5",
     "@interloid/logger": "^0.0.3",
-    "@interloid/observability": "^0.0.1-rc.11",
+    "@interloid/observability": "^0.0.1",
     "@interloid/security": "^0.0.1",
     "@interloid/validation": "^0.0.2",
     "@nestjs/common": "^11.0.1",
